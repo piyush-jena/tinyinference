@@ -1,7 +1,7 @@
 #include <mathlib.h>
 #include <cassert>
 
-tensor rms_norm(tensor& x, tensor& weight, const float eps = 1e-5f) {
+tensor rms_norm(tensor& x, tensor& weight, const float eps) {
     // calculate sum of squares
     float ss = eps;
     std::pair<int, int> dim = x.shape();
@@ -41,4 +41,5 @@ tensor softmax(tensor& x) {
     }
 
     tensor result{temp, dim};
+    return result;
 }
