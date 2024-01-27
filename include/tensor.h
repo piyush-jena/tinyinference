@@ -2,24 +2,33 @@
 #include <vector>
 
 class tensor {
-    std::vector<float> mat; //dim1 x dim2 matrix
-    std::pair<int, int> dim;
+        bool ref;
+    protected:
+        float* m_data;
+        std::pair<int, int> dim;
 
     public:
         tensor();
-        tensor(std::vector<float> mat, std::pair<int, int> dim);
+        tensor(float* data, std::pair<int, int> dim);
         tensor(std::pair<int, int> dim, float val);
         tensor(std::pair<int, int> dim);
+        tensor(const tensor& matrix);
+        ~tensor();
 
-        tensor copy();
-        unsigned int rows() const;
-        unsigned int cols() const;
+        inline size_t size() const { return (dim.first * dim.second); }
+		inline size_t rows() const { return dim.first; }
+		inline size_t columns() const { return dim.second; }
         std::pair<int, int> shape() const;
+        void reshape(std::pair<int,int> n_dim);
         std::string toString() const;
-        std::vector<float> matrix() const;
+        float* matrix() const;
 
-        const float& operator [](int idx) const;
-        tensor operator+(tensor const& obj) const;
-        tensor operator*(tensor const& obj) const;
-        tensor operator*(float const& obj) const;
+        float& operator() (size_t index); //should return float* array
+        const float& operator() (size_t index) const;
+        tensor operator[] (size_t index) const;
+        tensor operator+(const tensor& obj) const;
+        tensor operator*(const tensor& obj) const;
+        tensor operator*(const float& obj) const;
+        tensor& operator=(const tensor& matrix); //copy assignment
+		tensor& operator=(tensor&& matrix);      //move assignment
 };
