@@ -7,6 +7,8 @@ class attention {
     Config config;
 
     //weights
+    tensor rms_att_weight;
+
     tensor query;
     tensor key;
     tensor value;
@@ -26,38 +28,57 @@ class attention {
         attention() {}
         attention (Config config) : config{config} {}
 
-        void set_query(float* q) {
+        ssize_t set_rms_att_weight(float* w) {
+            rms_att_weight = tensor{w, {1, config.dim}};
+            return rms_att_weight.size();
+        }
+
+        ssize_t set_query(float* q) {
             int head_size = config.dim / config.n_heads;
 
             query = tensor(q, {config.dim, config.n_heads * head_size});
+            return query.size();
         }
 
-        void set_key(float* k) {
+        ssize_t set_key(float* k) {
             int head_size = config.dim / config.n_heads;
 
             key = tensor(k, {config.dim, config.n_kv_heads * head_size});
+            return key.size();
         }
 
-        void set_value(float* v) {
+        ssize_t set_value(float* v) {
             int head_size = config.dim / config.n_heads;
 
             value = tensor(v, {config.dim, config.n_kv_heads * head_size});
+            return value.size();
         }
 
-        void set_weight_o(float* w) {
+        ssize_t set_weight_o(float* w) {
             int head_size = config.dim / config.n_heads;
 
             weight_o = tensor(w, {config.n_heads * head_size, config.dim});
+            return weight_o.size();
         }
 
-        void set_ffn_weights(float* w1, float* w2, float* w3) {
+        ssize_t set_ffn_weights1(float* w1) {
             weight1 = tensor{w1, {config.dim, config.hidden_dim}};
-            weight2 = tensor{w2, {config.hidden_dim, config.dim}};
-            weight3 = tensor{w3, {config.dim, config.hidden_dim}};
+            return weight1.size();
         }
 
-        void set_rms_ffn_weight(float* w) {
+        ssize_t set_ffn_weights2(float* w2) {
+            weight2 = tensor{w2, {config.hidden_dim, config.dim}};
+            return weight2.size();
+        }
+
+        ssize_t set_ffn_weights3(float* w3) {
+            weight3 = tensor{w3, {config.dim, config.hidden_dim}};
+            return weight3.size();
+        }
+
+        ssize_t set_rms_ffn_weight(float* w) {
             rms_ffn_weight = tensor{w, {1, config.dim}};
+            return rms_ffn_weight.size();
         }
 
         tensor forward(tensor& x, int pos) {

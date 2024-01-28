@@ -20,27 +20,29 @@ tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
 }
 
 tensor softmax(tensor& x) {
-    std::pair<int, int> dim = x.shape();
-    assert(dim.first == 1 || dim.second == 1);
+    int r = x.rows();
+    int c = x.columns();
 
-    std::vector<float> temp(dim.first * dim.second);
+    assert(r == 1 || c == 1);
+
+    float* temp = new float[r * c];
     float max_val = x(0);
 
-    for (int i = 1; i < (dim.first * dim.second) ; i++) {
+    for (int i = 1; i < (r * c) ; i++) {
         max_val = std::max(max_val, x(i));
     }
 
     float sum = 0.0f;
-    for (int i = 0 ; i < (dim.first * dim.second) ; i++) {
+    for (int i = 0 ; i < (r * c) ; i++) {
         temp[i] = expf(x(i) - max_val);
         sum += temp[i];
     }
 
-    for (int i = 0 ; i < (dim.first * dim.second) ; i++) {
+    for (int i = 0 ; i < (r * c) ; i++) {
         temp[i] /= sum;
     }
 
-    tensor result{temp, dim};
+    tensor result{temp, x.shape()};
     return result;
 }
 
