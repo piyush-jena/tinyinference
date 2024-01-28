@@ -1,6 +1,7 @@
-#include <tensor.h>
-#include <mathlib.h>
 #include <config.h>
+#include <mathlib.h>
+#include <tensor.h>
+
 
 class attention {
     //config

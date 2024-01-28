@@ -1,10 +1,9 @@
-#include <iostream>
-#include <cmath>
 #include <cassert>
-#include <sstream>
-#include <iomanip>
 #include <cstring>
-#include <tensor.h>
+#include <iomanip>
+#include <sstream>
+
+#include <include/tensor.h>
 
 tensor::tensor(float* data, std::pair<int, int> dim) 
 : ref(true), m_data(data), dim(dim) {

@@ -1,5 +1,6 @@
-#include <encoder.h>
 #include <map>
+
+#include <encoder.h>
 
 class bpe : public encoder {
     std::vector<std::string> vocab;

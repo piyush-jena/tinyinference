@@ -1,5 +1,7 @@
-#include <bpe.h>
+#include <iostream>
 #include <fstream>
+
+#include <include/encoder/bpe.h>
 
 bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
     int len;

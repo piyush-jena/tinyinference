@@ -1,8 +1,5 @@
-#include <tensor.h>
 #include <embedding.h>
-#include <config.h>
 #include <attention.h>
-#include <mathlib.h>
 
 #include <cstdio>
 #include <cstdlib>
