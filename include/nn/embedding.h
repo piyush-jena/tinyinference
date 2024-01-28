@@ -2,6 +2,7 @@
 
 class embedding : public tensor {
     public:
+        embedding ();
         embedding (float* data, int vocab_size, int embd_dim);
         embedding (int vocab_size, int embd_dim);
         

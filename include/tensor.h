@@ -21,14 +21,14 @@ class tensor {
         std::pair<int, int> shape() const;
         void reshape(std::pair<int,int> n_dim);
         std::string toString() const;
-        float* matrix() const;
+        tensor slice(size_t index, std::pair<int,int> dim);
 
-        float& operator() (size_t index); //should return float* array
+        float& operator() (size_t index);
         const float& operator() (size_t index) const;
         tensor operator[] (size_t index) const;
         tensor operator+(const tensor& obj) const;
         tensor operator*(const tensor& obj) const;
         tensor operator*(const float& obj) const;
-        tensor& operator=(const tensor& matrix); //copy assignment
-		tensor& operator=(tensor&& matrix);      //move assignment
+        tensor& operator=(const tensor& matrix);
+		tensor& operator=(tensor&& matrix);
 };

@@ -83,16 +83,18 @@ class attention {
 
         tensor forward(tensor& x, int pos) {
             int kv_dim = (config.dim * config.n_kv_heads) / config.n_heads;
-
             int head_size = config.dim / config.n_heads;
+            int kv_mul = config.n_heads / config.n_kv_heads;
+
+            x = x * rms_att_weight;
+
+            tensor k = key_cache.slice(pos * kv_dim, {1, config.n_kv_heads * head_size});
+            tensor v = value_cache.slice(pos * kv_dim, {1, config.n_kv_heads * head_size});
 
             // qkv matmuls for this position
-            tensor q = query * x;
-            tensor k = key * x;
-            tensor v = value * x;
-
-            key_cache[pos] = k;
-            value_cache[pos] = v;
+            tensor q = x * query;
+            k = x * key;
+            v = x * value;
 
             q.reshape({config.n_heads, head_size});
             k.reshape({config.n_kv_heads, head_size});
@@ -130,7 +132,7 @@ class attention {
                 tensor _q = q[h];
                 
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _k = key_cache(t*kv_dim + (h/kv_mul) * head_size); // from key_cache
+                    tensor _k = key_cache.slice(t * kv_dim + (h / kv_mul) * head_size, {});
 
                     float score = 0.0f;
                     for (int i = 0 ; i < head_size ; i++) {
@@ -145,7 +147,7 @@ class attention {
                 att = softmax(att);
 
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _v = value_cache(t*kv_dim + (h/kv_mul) * head_size); // from value_cache
+                    tensor _v = value_cache.slice(t * kv_dim + (h / kv_mul) * head_size, {}); // from value_cache
                     float a = att(t);
 
                     for (int i = 0 ; i < head_size ; i++) {

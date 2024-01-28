@@ -2,9 +2,7 @@
 #include <embedding.h>
 #include <config.h>
 #include <attention.h>
-
 #include <mathlib.h>
-#include <multi_head_attention.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -13,12 +11,8 @@
 #include <cmath>
 #include <cstring>
 #include <fcntl.h>
-#if defined _WIN32
-    #include "win.h"
-#else
-    #include <unistd.h>
-    #include <sys/mman.h>
-#endif
+#include <unistd.h>
+#include <sys/mman.h>
 
 class llama2 {
     Config config; // the hyperparameters of the architecture (the blueprint)

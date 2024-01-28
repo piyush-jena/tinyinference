@@ -3,7 +3,7 @@
 #include <cassert>
 #include <sstream>
 #include <iomanip>
-#include <vector>
+#include <cstring>
 #include <tensor.h>
 
 tensor::tensor(float* data, std::pair<int, int> dim) 
@@ -18,10 +18,10 @@ tensor::tensor(std::pair<int, int> dim, float val)
 tensor::tensor(std::pair<int, int> dim) 
 : ref(false), m_data(new float[dim.first * dim.second]), dim{dim} {}
 
-tensor::tensor(const tensor& matrix)
-: ref(false), dim(matrix.shape())
+tensor::tensor(const tensor& t)
+: ref(false), m_data(new float[t.size()]), dim(t.shape())
 {
-    memcpy(m_data, matrix.m_data, (dim.first * dim.second) * sizeof(float));
+    memcpy(m_data, t.m_data, t.size() * sizeof(float));
 }
 
 tensor::~tensor() {
@@ -34,12 +34,12 @@ std::pair<int,int> tensor::shape() const {
 }
 
 void tensor::reshape(std::pair<int,int> n_dim) {
+    assert((dim.first * dim.second) == (n_dim.first * n_dim.second));
     dim = n_dim;
 }
 
 std::string tensor::toString() const {
     std::stringstream ss;
-
     for(int i = 0; i < dim.first; i++) {
         for(int j = 0; j < dim.second; j++) {
             ss << std::setprecision(2) << m_data[i*dim.second+j] << " ";
@@ -51,12 +51,12 @@ std::string tensor::toString() const {
     return ss.str();
 }
 
-float* tensor::matrix() const {
-    return m_data;
-}
-
 float& tensor::operator() (size_t index) {
     return m_data[index];
+}
+
+tensor tensor::slice(size_t index, std::pair<int,int> dim) {
+    return tensor(m_data + index, dim);
 }
 
 const float& tensor::operator() (size_t index) const {
@@ -121,9 +121,14 @@ tensor& tensor::operator=(const tensor& matrix) {
 }
 
 tensor& tensor::operator=(tensor&& matrix) {
-    delete[] m_data;
-    m_data = matrix.m_data;
+    if (ref && this->size() == matrix.size()) {
+	    memcpy(m_data, matrix.m_data, sizeof(float) * dim.first * dim.second);
+	} else {
+		delete[] m_data;
+	    m_data = matrix.m_data;
+        matrix.m_data = nullptr;
+	}
+
     dim = matrix.dim;
-    matrix.m_data = nullptr;
     return *this;
 }
