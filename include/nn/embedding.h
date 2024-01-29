@@ -1,4 +1,7 @@
-#include <tensor.h>
+#ifndef __tinyinference_embedding_h
+#define __tinyinference_embedding_h
+
+#include "tensor.h"
 
 class embedding : public tensor {
     public:
@@ -11,3 +14,5 @@ class embedding : public tensor {
 
         tensor operator() (size_t token) const;
 };
+
+#endif

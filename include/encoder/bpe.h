@@ -1,6 +1,8 @@
-#include <map>
+#ifndef __tinyinference_bpe_h
+#define __tinyinference_bpe_h
 
-#include <encoder.h>
+#include <map>
+#include "encoder.h"
 
 class bpe : public encoder {
     std::vector<std::string> vocab;
@@ -15,3 +17,5 @@ class bpe : public encoder {
         std::string decode(int prev_token, int token);
         void safe_printf(std::string text);
 };
+
+#endif

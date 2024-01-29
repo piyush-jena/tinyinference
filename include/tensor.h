@@ -1,3 +1,6 @@
+#ifndef __tinyinference_tensor_h
+#define __tinyinference_tensor_h
+
 #include <string>
 #include <utility>
 
@@ -32,3 +35,5 @@ class tensor {
         tensor& operator=(const tensor& matrix);
 		tensor& operator=(tensor&& matrix);
 };
+
+#endif

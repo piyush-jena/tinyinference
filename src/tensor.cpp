@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include <include/tensor.h>
+#include "tensor.h"
 
 tensor::tensor(float* data, std::pair<int, int> dim) 
 : ref(true), m_data(data), dim(dim) {

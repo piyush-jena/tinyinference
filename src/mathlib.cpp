@@ -1,7 +1,8 @@
 #include <cassert>
 #include <utility>
+#include <cmath>
 
-#include <include/mathlib.h>
+#include "mathlib.h"
 
 tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     // calculate sum of squares
@@ -48,10 +49,13 @@ tensor softmax(tensor& x) {
     return result;
 }
 
-tensor sigmoid(tensor& x) {
+tensor sigmoid(tensor& t) {
+    tensor x = t;
     for (int i = 0 ; i < x.size() ; i++) {
         x(i) = 1.0f / (1.0f + expf(-x(i)));
     }
+
+    return x;
 }
 
 tensor silu(tensor& x) {

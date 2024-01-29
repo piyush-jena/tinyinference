@@ -1,4 +1,7 @@
-#include <tensor.h>
+#ifndef __tinyinference_linear_h
+#define __tinyinference_linear_h
+
+#include "tensor.h"
 
 class linear {
     tensor w;
@@ -6,18 +9,12 @@ class linear {
     bool bias;
 
 public:
-    linear(tensor weight) : w{weight}, bias{false} {}
-    linear(tensor weight, tensor bias) : w{weight}, b{bias}, bias{true} {}
+    linear(tensor weight);
+    linear(tensor weight, tensor bias);
 
-    tensor forward(const tensor& x) {
-        if (bias)
-            return x * w + b;
-        return x * w;
-    }
+    tensor forward(const tensor& x);
 
-    tensor operator() (const tensor& x) const {
-        if (bias)
-            return x * w + b;
-        return x * w;
-    }
+    tensor operator() (const tensor& x) const;
 };
+
+#endif

@@ -1,7 +1,8 @@
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
-#include <include/encoder/bpe.h>
+#include "encoder/bpe.h"
 
 bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
     int len;
@@ -20,7 +21,7 @@ bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
         file.read((char *)&len, sizeof(int));       
         file.read(buf, len * sizeof(char));
         
-        std::string temp{buf, len};
+        std::string temp{buf, static_cast<unsigned long>(len)};
         vocab_scores[temp] = score;
         vocab[i] = temp;
     }
@@ -129,6 +130,7 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
     }
 
     if (eos) tokens[token_count++] = 2;
+    return tokens;
 }
 
 std::string bpe::decode(int prev_token, int token) {

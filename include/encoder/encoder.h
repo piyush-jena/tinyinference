@@ -1,3 +1,6 @@
+#ifndef __tinyinference_encoder_h
+#define __tinyinference_encoder_h
+
 #include <vector>
 #include <string>
 
@@ -11,3 +14,5 @@ class encoder {
         virtual std::string decode(int prev_token, int token) = 0;
         virtual void safe_printf(std::string text) = 0; //to be removed in the long run.
 };
+
+#endif
