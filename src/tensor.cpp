@@ -5,20 +5,24 @@
 
 #include "tensor.h"
 
+tensor::tensor() : ref{false}, m_data{nullptr} {
+    dim = {0,0};
+}
+
 tensor::tensor(float* data, std::pair<int, int> dim) 
-: ref(true), m_data(data), dim(dim) {
+: ref{true}, m_data{data}, dim{dim} {
 }
 
 tensor::tensor(std::pair<int, int> dim, float val) 
-: ref(false), m_data(new float[dim.first * dim.second]), dim{dim} {
+: ref{false}, m_data{new float[dim.first * dim.second]}, dim{dim} {
     std::fill_n(m_data, (dim.first * dim.second), val);
 }
 
 tensor::tensor(std::pair<int, int> dim) 
-: ref(false), m_data(new float[dim.first * dim.second]), dim{dim} {}
+: ref{false}, m_data{new float[dim.first * dim.second]}, dim{dim} {}
 
 tensor::tensor(const tensor& t)
-: ref(false), m_data(new float[t.size()]), dim(t.shape())
+: ref{false}, m_data{new float[t.size()]}, dim{t.shape()}
 {
     memcpy(m_data, t.m_data, t.size() * sizeof(float));
 }

@@ -1,2 +1,2 @@
-add_executable("llama2.out" "llama2.cpp")
-target_link_libraries("llama2.out" PRIVATE ${TINYINFERENCE_LIB})
+add_executable("a.out" "main.cpp")
+target_link_libraries("a.out" PRIVATE ${TINYINFERENCE_LIB})

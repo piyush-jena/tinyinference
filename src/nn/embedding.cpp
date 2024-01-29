@@ -1,5 +1,6 @@
 #include "nn/embedding.h"
 
+embedding::embedding () : tensor() {}
 embedding::embedding (float* data, int vocab_size, int embd_dim) : tensor(data, {vocab_size, embd_dim}) {}
 embedding::embedding (int vocab_size, int embd_dim) : tensor({vocab_size, embd_dim}) {}
 
