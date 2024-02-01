@@ -5,6 +5,7 @@
 #include "encoder/bpe.h"
 
 bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
+    vocab = std::vector<std::string>(vocab_size);
     int len;
     float score;
     char buf[max_token_length * 2 + 3];
@@ -14,20 +15,21 @@ bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
         byte_pieces[i*2 + 1] = '\0';
     }
 
+    
     std::fstream file{tokenizer_path};
     if (!file) { throw std::runtime_error("Unable to open the tokenizer file tokenizer.bin!"); }
+    file.read((char *)&max_token_length, sizeof(int));
     for (int i = 0 ; i < vocab_size; i++) {
         file.read((char *)&score, sizeof(float));
-        file.read((char *)&len, sizeof(int));       
+        file.read((char *)&len, sizeof(int));     
         file.read(buf, len * sizeof(char));
-        
         std::string temp{buf, static_cast<unsigned long>(len)};
         vocab_scores[temp] = score;
         vocab[i] = temp;
     }
 
-    sort(vocab.begin(), vocab.end());
     file.close();
+    sort(vocab.begin(), vocab.end());
 }
 
 std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
@@ -41,7 +43,10 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
     size_t str_len = 0;
 
     // add optional BOS (=1) token, if desired
-    if (bos) tokens[token_count++] = 1;
+    if (bos) {
+        tokens.push_back(1);
+        token_count++;
+    }
 
     // add_dummy_prefix is true by default
     // so prepend a dummy prefix token to the input string, but only if text != ""
@@ -49,7 +54,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
     // energy to read more of the sentencepiece code to figure out what it's doing
     if (text[0] != '\0') {
         auto itr = lower_bound(vocab.begin(), vocab.end(), " ");
-        tokens[token_count++] = (itr - vocab.begin());
+        tokens.push_back(itr - vocab.begin());
+        token_count++;
     }
 
     // Okay UTF-8 time. This will get messy. Here is the reference from Wikipedia:
@@ -85,13 +91,15 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
         // ok c+1 is not a continuation byte, so we've read in a full codepoint
         if (vocab_scores.find(str_buffer) != vocab_scores.end()) {
             auto itr = lower_bound(vocab.begin(), vocab.end(), str_buffer);
-            tokens[token_count++] = (itr - vocab.begin());
+            tokens.push_back(itr - vocab.begin());
+            token_count++;
         } else {
             // byte_fallback encoding: just encode each byte as a token
             // +3 is here because the first 3 vocab elements are <unk>, <s>, </s>
             // so the individual bytes only start at index 3
             for (int i=0; i < str_len; i++) {
-                tokens[token_count++] = (unsigned char)str_buffer[i] + 3;
+                tokens.push_back((unsigned char)str_buffer[i] + 3);
+                token_count++;
             }
         }
 
@@ -129,7 +137,10 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
         token_count--; // token length decreased
     }
 
-    if (eos) tokens[token_count++] = 2;
+    if (eos) {
+        tokens.push_back(2);
+        token_count++;
+    }
     return tokens;
 }
 

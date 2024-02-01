@@ -12,7 +12,7 @@ class embedding : public tensor {
         int embedding_size();
         int vocab_size();
 
-        tensor operator() (size_t token) const;
+        tensor& operator() (size_t token) const;
 };
 
 #endif

@@ -10,8 +10,10 @@ tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     std::pair<int, int> dim = x.shape();
     assert(dim == weight.shape());
 
-    for (int i = 0 ; i < (dim.first * dim.second) ; i++) {
-        ss += (x(i) * x(i));
+    for (int i = 0 ; i < dim.first ; i++) {
+        for (int j = 0 ; j < dim.second ; j++) {
+            ss += (x[{i,j}] * x[{i,j}]);
+        }
     }
 
     ss /= (dim.first * dim.second);
@@ -22,42 +24,43 @@ tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     return result;
 }
 
-tensor softmax(tensor& x) {
+tensor softmax(const tensor& x) {
     int r = x.rows();
     int c = x.columns();
+    tensor res = x;
 
-    assert(r == 1 || c == 1);
+    for (int i = 0 ; i < r ; i++) {
+        float max_val = x[{i, 0}];
+        float sum = 0.0f;
+        for (int j = 1 ; j < c ; j++) {
+            max_val = std::max(max_val, x[{i, j}]);
+        }
 
-    float* temp = new float[r * c];
-    float max_val = x(0);
+        for (int j = 0 ; j < c ; j++) {
+            res[{i,j}] = expf(x[{i,j}] - max_val);
+            sum += res[{i,j}];
+        }
 
-    for (int i = 1; i < (r * c) ; i++) {
-        max_val = std::max(max_val, x(i));
+        for (int j = 0 ; j < c ; j++) {
+            res[{i,j}] /= sum;
+        }
     }
 
-    float sum = 0.0f;
-    for (int i = 0 ; i < (r * c) ; i++) {
-        temp[i] = expf(x(i) - max_val);
-        sum += temp[i];
-    }
-
-    for (int i = 0 ; i < (r * c) ; i++) {
-        temp[i] /= sum;
-    }
-
-    tensor result{temp, x.shape()};
-    return result;
+    return res;
 }
 
-tensor sigmoid(tensor& t) {
+tensor sigmoid(const tensor& t) {
     tensor x = t;
-    for (int i = 0 ; i < x.size() ; i++) {
-        x(i) = 1.0f / (1.0f + expf(-x(i)));
+    for (int i = 0 ; i < x.shape().first; i++) {
+        for (int j = 0 ; j < x.shape().second ; j++) {
+            x[{i, j}] = 1.0f / (1.0f + expf(-x[{i, j}]));
+        }
     }
 
     return x;
 }
 
-tensor silu(tensor& x) {
-    return x * sigmoid(x);
+tensor silu(const tensor& x) {
+    tensor res = x * sigmoid(x);
+    return res;
 }

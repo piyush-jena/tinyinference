@@ -4,8 +4,8 @@
 #include "tensor.h"
 
 tensor rms_norm(const tensor& x, const tensor& weight, const float eps = 1e-5f);
-tensor softmax(tensor& x);
-tensor sigmoid(tensor& x);
-tensor silu(tensor& x);
+tensor softmax(const tensor& x);
+tensor sigmoid(const tensor& x);
+tensor silu(const tensor& x);
 
 #endif

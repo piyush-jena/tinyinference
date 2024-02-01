@@ -1,5 +1,6 @@
 #include "config.h"
 #include "tensor.h"
+#include <iostream>
 
 class attention {
     //config
@@ -25,7 +26,11 @@ class attention {
 
     public:
         attention() {}
-        attention (Config config) : config{config} {}
+        attention (Config config) : config{config} {
+            int head_size = config.dim / config.n_heads;
+            key_cache = tensor{{config.seq_len, config.n_kv_heads * head_size}};
+            value_cache = tensor{{config.seq_len, config.n_kv_heads * head_size}};
+        }
 
         ssize_t set_rms_att_weight(float* w) {
             rms_att_weight = tensor{w, {1, config.dim}};
@@ -34,7 +39,6 @@ class attention {
 
         ssize_t set_query(float* q) {
             int head_size = config.dim / config.n_heads;
-
             query = tensor(q, {config.dim, config.n_heads * head_size});
             return query.size();
         }
@@ -61,17 +65,17 @@ class attention {
         }
 
         ssize_t set_ffn_weights1(float* w1) {
-            weight1 = tensor{w1, {config.dim, config.hidden_dim}};
+            weight1 = tensor{w1, {config.hidden_dim, config.dim}};
             return weight1.size();
         }
 
         ssize_t set_ffn_weights2(float* w2) {
-            weight2 = tensor{w2, {config.hidden_dim, config.dim}};
+            weight2 = tensor{w2, {config.dim, config.hidden_dim}};
             return weight2.size();
         }
 
         ssize_t set_ffn_weights3(float* w3) {
-            weight3 = tensor{w3, {config.dim, config.hidden_dim}};
+            weight3 = tensor{w3, {config.hidden_dim, config.dim}};
             return weight3.size();
         }
 
@@ -80,93 +84,90 @@ class attention {
             return rms_ffn_weight.size();
         }
 
-        tensor forward(tensor& x, int pos) {
+        tensor forward(tensor x, int pos) {
             int kv_dim = (config.dim * config.n_kv_heads) / config.n_heads;
             int head_size = config.dim / config.n_heads;
             int kv_mul = config.n_heads / config.n_kv_heads;
 
-            x = x * rms_att_weight;
+            x = rms_norm(x, rms_att_weight);
 
-            tensor k = key_cache.slice(pos * kv_dim, {1, config.n_kv_heads * head_size});
-            tensor v = value_cache.slice(pos * kv_dim, {1, config.n_kv_heads * head_size});
+            tensor k = key_cache[pos];
+            tensor v = value_cache[pos];
 
-            // qkv matmuls for this position
             tensor q = x * query;
             k = x * key;
             v = x * value;
 
-            q.reshape({config.n_heads, head_size});
-            k.reshape({config.n_kv_heads, head_size});
-            v.reshape({config.n_kv_heads, head_size});
-
+            q.set_shape({config.n_heads, head_size});
+            k.set_shape({config.n_kv_heads, head_size});
+            v.set_shape({config.n_kv_heads, head_size});
+            
             // RoPE relative positional encoding: complex-valued rotate q and k in each head
             for (int i = 0 ; i < config.dim ; i += 2) {
-                int h = i % head_size;
-                float freq = 1.0f / powf(10000.0f, h / (float)head_size);
+                int head_dim = i % head_size;
+                int head_no = i / head_size;
+
+                float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
                 float val = pos * freq;
                 float fcr = cosf(val);
                 float fci = sinf(val);
                 int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
+
                 for (int v = 0 ; v < rotn ; v++) {
                     if (v == 0) {
-                        float v0 = q(i);
-                        float v1 = q(i+1);
+                        float v0 = q[{head_no, head_dim}];
+                        float v1 = q[{head_no, head_dim+1}];
 
-                        q(i) = v0 * fcr - v1 * fci;
-                        q(i+1) = v0 * fci + v1 * fcr;
+                        q[{head_no, head_dim}] = v0 * fcr - v1 * fci;
+                        q[{head_no, head_dim+1}] = v0 * fci + v1 * fcr;
                     } else {
-                        float v0 = k(i);
-                        float v1 = k(i+1);
+                        float v0 = k[{head_no, head_dim}];
+                        float v1 = k[{head_no, head_dim+1}];
 
-                        k(i) = v0 * fcr - v1 * fci;
-                        k(i+1) = v0 * fci + v1 * fcr;
+                        k[{head_no, head_dim}] = v0 * fcr - v1 * fci;
+                        k[{head_no, head_dim+1}] = v0 * fci + v1 * fcr;
                     }
                 }
             }
-
+            
             tensor att{{1, pos+1}};
-            tensor xb{{1, head_size}, 0.0f};
-
+            tensor xb{{1, config.n_heads * head_size}, 0.0f};
             for (int h = 0 ; h < config.n_heads ; h++) {
                 tensor _q = q[h];
                 
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _k = key_cache.slice(t * kv_dim + (h / kv_mul) * head_size, {});
+                    tensor _k = key_cache[t + h/config.n_heads];
 
                     float score = 0.0f;
                     for (int i = 0 ; i < head_size ; i++) {
-                        score += _q(i) * _k(i);
+                        score += _q[{0,i}] * _k[{0,i}];
                     }
 
                     score /= sqrtf(head_size);
                     // save the score to the attention buffer
-                    att(t) = score;
+                    att[{0, t}] = score;
                 }
 
                 att = softmax(att);
 
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _v = value_cache.slice(t * kv_dim + (h / kv_mul) * head_size, {}); // from value_cache
-                    float a = att(t);
+                    tensor _v = value_cache[t + h/config.n_heads];
+                    float a = att[{0, t}];
 
-                    for (int i = 0 ; i < head_size ; i++) {
-                        xb(i) = xb(i) + a * v(i);
-                    }
+                    xb = xb + _v * a;
                 }
             }
-
+            
             tensor xb2 = xb * weight_o;
-
             x = x + xb2;
             xb = rms_norm(x, rms_ffn_weight);
 
             tensor hb = xb * weight1;
             tensor hb2 = xb * weight3;
-
+            
             hb = silu(hb) * hb2;
             xb = hb * weight2;
             x = x + xb;
-
             return x;
         }
 

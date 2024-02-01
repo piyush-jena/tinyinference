@@ -13,10 +13,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <iostream>
 
 class llama2 {
-    Config config; // the hyperparameters of the architecture (the blueprint)
-
     embedding token_embedding_table;
     attention* multi_head_attention;
     tensor wcls;
@@ -27,15 +26,17 @@ class llama2 {
     float* data; // memory mapped data pointer
     ssize_t file_size; // size of the checkpoint file in bytes
 public:
-    llama2(){};
+    Config config; // the hyperparameters of the architecture (the blueprint)
+    llama2() {};
 
     llama2(char* checkpoint_path) {
         read_checkpoint(checkpoint_path);
     }
 
     ~llama2() {
+        delete[] multi_head_attention;
         // close the memory mapping
-        if (data != MAP_FAILED) { munmap(data, file_size); }
+        if ((void *)data != MAP_FAILED) { munmap(data, file_size); }
         if (fd != -1) { close(fd); }
     }
 
@@ -49,7 +50,7 @@ public:
         config.vocab_size = abs(config.vocab_size);
         // figure out the file size
         fseek(file, 0, SEEK_END); // move file pointer to end of file
-        ssize_t file_size = ftell(file); // get the file size, in bytes
+        file_size = ftell(file); // get the file size, in bytes
         fclose(file);
 
         // file backed mapping of Transformer weights to memory
@@ -114,17 +115,18 @@ public:
         weights += config.seq_len * head_size / 2; // skip what used to be freq_cis_imag (for RoPE)
         
         wcls = shared_weights ? token_embedding_table : tensor{weights, {config.vocab_size, config.dim}};
+        weights = nullptr;
     }
 
     tensor forward(int token, int pos) {
-        tensor x = token_embedding_table(token);
-        
+        tensor emb = token_embedding_table(token);
+        tensor x = emb.copy();
+
         for (int l = 0 ; l < config.n_layers ; l++) {
             x = multi_head_attention[l].forward(x, pos);
         }
 
         x = rms_norm(x, rms_final_weight);
-        tensor logits = x * wcls;
-        return logits;
+        return (x * wcls);
     }
 };
