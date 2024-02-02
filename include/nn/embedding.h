@@ -9,8 +9,8 @@ class embedding : public tensor {
         embedding (float* data, int vocab_size, int embd_dim);
         embedding (int vocab_size, int embd_dim);
         
-        int embedding_size();
-        int vocab_size();
+        int embedding_size() const;
+        int vocab_size() const;
 
         tensor& operator() (size_t token) const;
 };

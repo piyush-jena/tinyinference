@@ -89,14 +89,16 @@ class attention {
             int head_size = config.dim / config.n_heads;
             int kv_mul = config.n_heads / config.n_kv_heads;
 
-            x = rms_norm(x, rms_att_weight);
+            tensor xb = rms_norm(x, rms_att_weight);
 
-            tensor k = key_cache[pos];
-            tensor v = value_cache[pos];
+            tensor q = xb * query;
+            tensor k = xb * key;
+            tensor v = xb * value;
 
-            tensor q = x * query;
-            k = x * key;
-            v = x * value;
+            for (int i = 0 ; i < k.size() ; i++) {
+                key_cache[{pos, i}] = k[{0,i}];
+                value_cache[{pos, i}] = v[{0,i}];
+            }
 
             q.set_shape({config.n_heads, head_size});
             k.set_shape({config.n_kv_heads, head_size});
@@ -131,7 +133,6 @@ class attention {
             }
             
             tensor att{{1, pos+1}};
-            tensor xb{{1, config.n_heads * head_size}, 0.0f};
             for (int h = 0 ; h < config.n_heads ; h++) {
                 tensor _q = q[h];
                 
@@ -150,14 +151,18 @@ class attention {
 
                 att = softmax(att);
 
+                int idx = h * head_size;
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _v = value_cache[t + h/config.n_heads];
+                    tensor _v = value_cache[t];
                     float a = att[{0, t}];
 
-                    xb = xb + _v * a;
+                    for (int i = 0 ; i < head_size ; i++) {
+                        xb[{0, idx + i}] = a * _v[{0, (idx / kv_mul) + i}];
+                    }
                 }
             }
             
+            //some calculation went wrong above here
             tensor xb2 = xb * weight_o;
             x = x + xb2;
             xb = rms_norm(x, rms_ffn_weight);

@@ -4,11 +4,11 @@ embedding::embedding () : tensor() {}
 embedding::embedding (float* data, int vocab_size, int embd_dim) : tensor{data, {vocab_size, embd_dim}, true} {}
 embedding::embedding (int vocab_size, int embd_dim) : tensor({vocab_size, embd_dim}) {}
 
-int embedding::embedding_size() {
+int embedding::embedding_size() const {
     return tensor::columns();
 }
 
-int embedding::vocab_size() {
+int embedding::vocab_size() const {
     return tensor::rows();
 }
 

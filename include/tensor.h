@@ -5,8 +5,8 @@
 #include <utility>
 
 class tensor {
-        bool ref = true;;
     protected:
+        bool ref = true;
         float* m_data;
         std::pair<int, int> dim;
 
@@ -24,6 +24,9 @@ class tensor {
         void set_shape(std::pair<int,int> n_dim);
         void set_ref(bool ref);
 
+        bool get_ref() const { return ref; }
+        float* get_data() const { return m_data; }
+
         inline size_t size() const { return (dim.first * dim.second); }
 		inline size_t rows() const { return dim.first; }
 		inline size_t columns() const { return dim.second; }
@@ -38,7 +41,6 @@ class tensor {
         tensor& operator() (size_t index) const;
         float& operator() (std::pair<size_t, size_t> index) const;
         /*
-
         float& operator() (size_t index);
         const float& operator() (size_t index) const;
         tensor operator[] (size_t index) const;*/

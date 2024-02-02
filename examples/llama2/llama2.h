@@ -127,6 +127,7 @@ public:
         }
 
         x = rms_norm(x, rms_final_weight);
-        return (x * wcls);
+        x = x * wcls;
+        return x;
     }
 };

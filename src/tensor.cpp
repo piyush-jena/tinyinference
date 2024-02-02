@@ -9,17 +9,21 @@ tensor::tensor() : ref{true}, m_data{nullptr} {
     dim = {0,0};
 }
 
-tensor::tensor(float* data, std::pair<int, int> dim) 
-: tensor(data, dim, true) {}
+tensor::tensor(float* data, std::pair<int, int> dim)
+: ref{true}, m_data{data}, dim{dim} {
+    //this->ref = true;
+}
 
 tensor::tensor(float* data, std::pair<int, int> dim, bool ref) 
 : ref{ref}, m_data{data}, dim{dim} {
+    //this->ref = ref;
 }
 
-tensor::tensor(std::pair<int, int> dim, float val) : tensor(nullptr, dim, false) {
+tensor::tensor(std::pair<int, int> dim, float val)
+: ref{false}, m_data{nullptr}, dim{dim}  {
     m_data = new float[dim.first * dim.second];
     std::fill_n(m_data, (dim.first * dim.second), val);
-    ref = false;
+    //this->ref = false;
 }
 
 tensor::tensor(std::pair<int, int> dim) 
@@ -27,22 +31,24 @@ tensor::tensor(std::pair<int, int> dim)
     m_data = new float[dim.first * dim.second];
 }
 
-tensor::tensor(const tensor& t) : tensor(nullptr, t.shape(), false) {
+tensor::tensor(const tensor& t)
+: ref{false}, m_data{nullptr} {
     m_data = new float[t.size()];
+    dim = t.shape();
     memcpy(m_data, t.m_data, t.size() * sizeof(float));
-    ref = false;
+    //this->ref = false;
 }
 
-tensor::tensor(tensor&& matrix) : tensor(matrix.m_data, matrix.shape(), matrix.ref) {
-    matrix.m_data = nullptr;
+tensor::tensor(tensor&& matrix) {
+    m_data = matrix.get_data();
+    dim = matrix.shape();
+    matrix.ref = true;
 }
 
 tensor::~tensor() {
     if (!ref && m_data != nullptr) {
         delete[] m_data;
     }
-
-    m_data = nullptr;
 }
 
 void tensor::set_data(float* data, int size) {
@@ -185,7 +191,7 @@ tensor& tensor::operator=(tensor&& matrix) {
 
 tensor tensor::copy() {
     float* m_data_copy = new float[this->size()];
-    memcpy(m_data_copy, m_data, this->size());
+    memcpy(m_data_copy, m_data, this->size() * sizeof(float));
 
     tensor new_t{m_data_copy, this->dim, false};
     return new_t;

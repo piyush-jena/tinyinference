@@ -6,10 +6,11 @@
 
 tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     // calculate sum of squares
+    assert(x.shape() == weight.shape());
+
     float ss = eps;
     std::pair<int, int> dim = x.shape();
-    assert(dim == weight.shape());
-
+    
     for (int i = 0 ; i < dim.first ; i++) {
         for (int j = 0 ; j < dim.second ; j++) {
             ss += (x[{i,j}] * x[{i,j}]);
