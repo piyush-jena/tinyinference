@@ -81,7 +81,7 @@ std::string tensor::toString() const {
 
 float& tensor::operator[] (std::pair<size_t, size_t> index) const {
     assert((index.first < dim.first) && (index.second < dim.second));
-    return m_data[index.first * dim.first + index.second];
+    return m_data[index.first * dim.second + index.second];
 }
 
 tensor& tensor::operator[] (size_t index) const {
@@ -92,7 +92,7 @@ tensor& tensor::operator[] (size_t index) const {
 
 float& tensor::operator() (std::pair<size_t, size_t> index) const {
     assert((index.first < dim.first) && (index.second < dim.second));
-    return m_data[index.first * dim.first + index.second];
+    return m_data[index.first * dim.second + index.second];
 }
 
 tensor& tensor::operator() (size_t index) const {

@@ -65,7 +65,7 @@ class Sampler {
         return vocab_size - 1; // in case of rounding errors
     }
 
-    int sample_topp(tensor& probabilities, float topp, std::vector<std::pair<float, int>>& probindex, float coin) {
+    int sample_topp(tensor& probabilities, float topp, float coin) {
         // top-p sampling (or "nucleus sampling") samples from the smallest set of
         // tokens that exceed probability topp. This way we never sample tokens that
         // have very low probabilities and are less likely to go "off the rails".
@@ -78,19 +78,19 @@ class Sampler {
         const float cutoff = (1.0f - topp) / (vocab_size - 1);
         for (int i = 0; i < vocab_size; i++) {
             if (probabilities[{0, i}] >= cutoff) {
-                probindex[n0].second = i;
-                probindex[n0].first = probabilities[{0, i}];
+                prob_index[n0].second = i;
+                prob_index[n0].first = probabilities[{0, i}];
                 n0++;
             }
         }
 
-        sort(prob_index.begin(), prob_index.begin() + n0);
+        sort(prob_index.begin(), prob_index.begin() + n0, std::greater<std::pair<float, int>>());
 
         // truncate the list where cumulative probability exceeds topp
         float cumulative_prob = 0.0f;
         int last_idx = n0 - 1; // in case of rounding errors consider all elements
         for (int i = 0; i < n0; i++) {
-            cumulative_prob += probindex[i].first;
+            cumulative_prob += prob_index[i].first;
             if (cumulative_prob > topp) {
                 last_idx = i;
                 break; // we've exceeded topp by including last_idx
@@ -101,13 +101,13 @@ class Sampler {
         float r = coin * cumulative_prob;
         float cdf = 0.0f;
         for (int i = 0; i <= last_idx; i++) {
-            cdf += probindex[i].first;
+            cdf += prob_index[i].first;
             if (r < cdf) {
-                return probindex[i].second;
+                return prob_index[i].second;
             }
         }
 
-        return probindex[last_idx].second; // in case of rounding errors
+        return prob_index[last_idx].second; // in case of rounding errors
     }
 
     int sample(tensor& logits) {
@@ -130,7 +130,7 @@ class Sampler {
                 next = sample_mult(logits, coin);
             } else {
                 // top-p (nucleus) sampling, clamping the least likely tokens to zero
-                next = sample_topp(logits, topp, prob_index, coin);
+                next = sample_topp(logits, topp, coin);
             }
         }
 

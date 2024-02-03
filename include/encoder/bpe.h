@@ -2,11 +2,12 @@
 #define __tinyinference_bpe_h
 
 #include <map>
+#include <utility>
 #include "encoder.h"
 
 class bpe : public encoder {
     std::vector<std::string> vocab;
-    std::map<std::string, float> vocab_scores;
+    std::map<std::string, std::pair<int, float>> vocab_scores;
 
     unsigned int max_token_length;
     unsigned char byte_pieces[512]; // stores all single-byte strings

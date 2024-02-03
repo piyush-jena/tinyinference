@@ -14,7 +14,6 @@ bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
         byte_pieces[i*2] = (unsigned char)i;
         byte_pieces[i*2 + 1] = '\0';
     }
-
     
     std::fstream file{tokenizer_path};
     if (!file) { throw std::runtime_error("Unable to open the tokenizer file tokenizer.bin!"); }
@@ -24,12 +23,11 @@ bpe::bpe(std::string tokenizer_path, int vocab_size) : encoder(vocab_size) {
         file.read((char *)&len, sizeof(int));     
         file.read(buf, len * sizeof(char));
         std::string temp{buf, static_cast<unsigned long>(len)};
-        vocab_scores[temp] = score;
+        vocab_scores[temp] = {i, score};
         vocab[i] = temp;
     }
 
     file.close();
-    sort(vocab.begin(), vocab.end());
 }
 
 std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
@@ -53,8 +51,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
     // TODO: pretty sure this isn't correct in the general case but I don't have the
     // energy to read more of the sentencepiece code to figure out what it's doing
     if (text[0] != '\0') {
-        auto itr = lower_bound(vocab.begin(), vocab.end(), " ");
-        tokens.push_back(itr - vocab.begin());
+        auto itr = vocab_scores[" "];
+        tokens.push_back(itr.first);
         token_count++;
     }
 
@@ -76,6 +74,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
         if ((text[i] & 0xC0) != 0x80) {
             // this byte must be either a leading byte (11...) or an ASCII char (0x...)
             // => reset our location, as we're starting a new UTF-8 codepoint
+            
+            str_buffer = "";
             str_len = 0;
         }
 
@@ -90,8 +90,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
 
         // ok c+1 is not a continuation byte, so we've read in a full codepoint
         if (vocab_scores.find(str_buffer) != vocab_scores.end()) {
-            auto itr = lower_bound(vocab.begin(), vocab.end(), str_buffer);
-            tokens.push_back(itr - vocab.begin());
+            auto itr = vocab_scores[str_buffer];
+            tokens.push_back(itr.first);
             token_count++;
         } else {
             // byte_fallback encoding: just encode each byte as a token
@@ -103,7 +103,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
             }
         }
 
-        str_len = 0; // protect against a sequence of stray UTF8 continuation bytes
+        str_len = 0;
+        str_buffer = ""; // protect against a sequence of stray UTF8 continuation bytes
     }
 
     // merge the best consecutive pair each iteration, according the scores in vocab_scores
@@ -116,9 +117,9 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
             // check if we can merge the pair (tokens[i], tokens[i+1])
             str_buffer = vocab[tokens[i]] + vocab[tokens[i+1]];
             auto itr = vocab_scores.find(str_buffer);
-            if (itr != vocab_scores.end() && itr->second > best_score) {
-                best_score = itr->second;
-                best_id = lower_bound(vocab.begin(), vocab.end(), str_buffer) - vocab.begin();
+            if (itr != vocab_scores.end() && itr->second.second > best_score) {
+                best_score = itr->second.second;
+                best_id = itr->second.first;
                 best_idx = i;
             }
         }
@@ -141,6 +142,8 @@ std::vector<int> bpe::encode(std::string text, bool bos, bool eos) {
         tokens.push_back(2);
         token_count++;
     }
+
+    tokens.resize(token_count);
     return tokens;
 }
 

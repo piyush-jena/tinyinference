@@ -94,6 +94,32 @@ class attention {
             tensor q = xb * query;
             tensor k = xb * key;
             tensor v = xb * value;
+            
+            // RoPE relative positional encoding: complex-valued rotate q and k in each head
+            for (int i = 0 ; i < config.dim ; i += 2) {
+                int head_dim = i % head_size;
+                float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
+                float val = pos * freq;
+                float fcr = cosf(val);
+                float fci = sinf(val);
+                int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
+
+                for (int v = 0 ; v < rotn ; v++) {
+                    if (v == 0) {
+                        float v0 = q[{0, i}];
+                        float v1 = q[{0, i+1}];
+
+                        q[{0, i}] = v0 * fcr - v1 * fci;
+                        q[{0, i+1}] = v0 * fci + v1 * fcr;
+                    } else {
+                        float v0 = k[{0, i}];
+                        float v1 = k[{0, i+1}];
+
+                        k[{0, i}] = v0 * fcr - v1 * fci;
+                        k[{0, i+1}] = v0 * fci + v1 * fcr;
+                    }
+                }
+            }
 
             for (int i = 0 ; i < k.size() ; i++) {
                 key_cache[{pos, i}] = k[{0,i}];
@@ -104,44 +130,14 @@ class attention {
             k.set_shape({config.n_kv_heads, head_size});
             v.set_shape({config.n_kv_heads, head_size});
             
-            // RoPE relative positional encoding: complex-valued rotate q and k in each head
-            for (int i = 0 ; i < config.dim ; i += 2) {
-                int head_dim = i % head_size;
-                int head_no = i / head_size;
-
-                float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
-                float val = pos * freq;
-                float fcr = cosf(val);
-                float fci = sinf(val);
-                int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
-
-                for (int v = 0 ; v < rotn ; v++) {
-                    if (v == 0) {
-                        float v0 = q[{head_no, head_dim}];
-                        float v1 = q[{head_no, head_dim+1}];
-
-                        q[{head_no, head_dim}] = v0 * fcr - v1 * fci;
-                        q[{head_no, head_dim+1}] = v0 * fci + v1 * fcr;
-                    } else {
-                        float v0 = k[{head_no, head_dim}];
-                        float v1 = k[{head_no, head_dim+1}];
-
-                        k[{head_no, head_dim}] = v0 * fcr - v1 * fci;
-                        k[{head_no, head_dim+1}] = v0 * fci + v1 * fcr;
-                    }
-                }
-            }
-            
             tensor att{{1, pos+1}};
+            xb = tensor{{1, head_size * config.n_heads}, 0.0f};
             for (int h = 0 ; h < config.n_heads ; h++) {
-                tensor _q = q[h];
-                
+                int idx = h * head_size;
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _k = key_cache[t + h/config.n_heads];
-
                     float score = 0.0f;
                     for (int i = 0 ; i < head_size ; i++) {
-                        score += _q[{0,i}] * _k[{0,i}];
+                        score += q[{h, i}] * key_cache[{t, (idx / kv_mul) + i}];
                     }
 
                     score /= sqrtf(head_size);
@@ -150,14 +146,12 @@ class attention {
                 }
 
                 att = softmax(att);
-
-                int idx = h * head_size;
+           
                 for (int t = 0 ; t <= pos ; t++) {
-                    tensor _v = value_cache[t];
                     float a = att[{0, t}];
 
                     for (int i = 0 ; i < head_size ; i++) {
-                        xb[{0, idx + i}] = a * _v[{0, (idx / kv_mul) + i}];
+                        xb[{0, idx + i}] += a * value_cache[{t, (idx / kv_mul) + i}];
                     }
                 }
             }

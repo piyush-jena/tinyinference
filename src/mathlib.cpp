@@ -8,7 +8,7 @@ tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     // calculate sum of squares
     assert(x.shape() == weight.shape());
 
-    float ss = eps;
+    float ss = 0.0f;
     std::pair<int, int> dim = x.shape();
     
     for (int i = 0 ; i < dim.first ; i++) {
@@ -18,6 +18,7 @@ tensor rms_norm(const tensor& x, const tensor& weight, const float eps) {
     }
 
     ss /= (dim.first * dim.second);
+    ss += eps;
     ss = 1.0f / sqrtf(ss);
 
     //normalize and scale

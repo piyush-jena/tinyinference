@@ -21,12 +21,16 @@ int main (int argc, char *argv[]) {
     int steps = 256;            // number of steps to run for
     unsigned long long rng_seed = 0; // seed rng with time by default
 
-    //char *path = argv[1];
-    char *path = argv[1];
-    llama2 model{path};
+    if (rng_seed <= 0) rng_seed = (unsigned int)time(NULL);
+    if (temperature < 0.0) temperature = 0.0;
+    if (topp < 0.0 || 1.0 < topp) topp = 0.9;
+    if (steps < 0) steps = 0;
+
+    char *model_path = argv[1];
+    llama2 model{model_path};
     Sampler sampler{model.config.vocab_size, temperature, topp, rng_seed};
 
-    std::string prompt = "Once upon a time";
+    std::string prompt = "";
     int vocab_size = model.config.vocab_size;
 
     // encode the (string) prompt into tokens sequence
